@@ -4,10 +4,11 @@ Just a fun way to practice Go.
 
 
 ## Setup Instructions
+```
 cd $PROJECT_ROOT
 cat /usr/share/dict/words > wordlist.txt
 go run main.go
-
+```
 
 ## Usage
 
