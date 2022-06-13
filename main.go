@@ -14,7 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var db = make(map[string]string)
+var dbShortToLong = make(map[string]string)
+var dbLongToShort = make(map[string]string)
 
 func setupRouter(wordlist *[]string) *gin.Engine {
 	// Disable Console Color
@@ -41,7 +42,15 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 			c.String(http.StatusBadRequest, http.StatusText(400))
 			return
 		}
-		log.Printf("DEBUG: url param was ", originalUrl)
+
+		// PREVENT DUPLICATION - O(1), but this approach doubles space used for each URL
+		// If we're already tracking this URL, just return that URL
+		short, exists := dbLongToShort[originalUrl.String()]
+		if exists {
+			log.Printf("DEBUG: Duplicate URL submitted: %s", originalUrl.String())
+			c.String(http.StatusOK, fmt.Sprintf("http://%s/url/%s", c.Request.Host, short))
+			return
+		}
 
 		// TODO environment variable for url-wordlength
 		for i := 0; i < numWordsNeeded; i++ {
@@ -53,19 +62,20 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 		chosenwords_str := strings.Join(chosenWords, "-")
 		log.Printf("Chosen words are", chosenwords_str)
 
-		// Store it in our database
-		db[chosenwords_str] = originalUrl.String()
+		// Store it in our databases
+		dbShortToLong[chosenwords_str] = originalUrl.String()
+		dbLongToShort[originalUrl.String()] = chosenwords_str
 
 		// Return a response
 		shortenedUrl := fmt.Sprintf("http://%s/url/%s", c.Request.Host, chosenwords_str)
-		c.String(http.StatusOK, shortenedUrl)
+		c.String(http.StatusCreated, shortenedUrl)
 	})
 
 	// This route/function looks up a shortened URL
 	r.GET("/url/:shortenedUrl", func(c *gin.Context) {
 		url := c.Params.ByName("shortenedUrl")
 
-		val, exists := db[url]
+		val, exists := dbShortToLong[url]
 		if exists {
 			c.Redirect(http.StatusPermanentRedirect, val)
 		} else {
