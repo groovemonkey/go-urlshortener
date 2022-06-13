@@ -67,12 +67,11 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 
 		val, exists := db[url]
 		if exists {
-			c.String(http.StatusOK, val)
+			c.Redirect(http.StatusPermanentRedirect, val)
 		} else {
 			c.String(http.StatusNotFound, "No such URL.")
 			return
 		}
-
 	})
 
 	return r
@@ -103,7 +102,7 @@ func main() {
 	log.Printf("DEBUG: Finished loading wordlist. Time elapsed: ", elapsed)
 
 	if err := scanner.Err(); err != nil {
-		log.Printf(err)
+		log.Printf("%v", err)
 	}
 
 	r := setupRouter(&wordlist)
