@@ -8,17 +8,25 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	DEFAULT_WORDLENGTH    = 4
+	DEFAULT_WORDLIST_PATH = "wordlist.txt"
+)
+
+// TODO what do I do with these? They're global vars, but not constants.
 var dbShortToLong = make(map[string]string)
 var dbLongToShort = make(map[string]string)
 var wordlist []string
+var wordlength = DEFAULT_WORDLENGTH
 
-func setupRouter() *gin.Engine {
+func setupRouter(wordlength int) *gin.Engine {
 	// Disable Console Color
 	// gin.DisableConsoleColor()
 	r := gin.Default()
@@ -26,7 +34,7 @@ func setupRouter() *gin.Engine {
 	// This route/function takes a URL, shortens it, stores that association, and returns it
 	r.POST("/shorten/", func(c *gin.Context) {
 		var chosenWords []string
-		var numWordsNeeded = 4
+		var numWordsNeeded = wordlength
 		wordlistLength := len(wordlist)
 
 		// Get post -d "DATA" by grabbing the raw request data
@@ -90,8 +98,32 @@ func setupRouter() *gin.Engine {
 
 func main() {
 
+	// Parse environment variables
+	wordlistPath, ok := os.LookupEnv("WORDLIST_PATH")
+	if !ok {
+		log.Printf("Using default WORDLIST_PATH: %v", DEFAULT_WORDLIST_PATH)
+		wordlistPath = DEFAULT_WORDLIST_PATH
+	}
+
+	// This is a bit weird -- using := further down created a bug (wordlength var scoped to an 'if' block?).
+	// so in order to use '=' for a multi-return function (Atoi) I have to declare err here too
+	var wordlength int
+	var err error
+	wordlength_str, _ := os.LookupEnv("WORDLENGTH")
+	if wordlength_str == "" {
+		log.Printf("Using default wordlength: %v", DEFAULT_WORDLENGTH)
+		wordlength = DEFAULT_WORDLENGTH
+	} else {
+		wordlength, err = strconv.Atoi(wordlength_str)
+		if err != nil {
+			panic("Invalid WORDLENGTH passed!")
+		}
+	}
+
+	log.Printf("Wordlength is %v", wordlength)
+
 	// Read wordlist file
-	file, err := os.Open("wordlist.txt")
+	file, err := os.Open(wordlistPath)
 	if err != nil {
 		panic("Unable to load wordlist. Exiting.")
 	}
@@ -108,13 +140,13 @@ func main() {
 	file.Close()
 
 	elapsed := time.Since(startTime)
-	log.Printf("DEBUG: Finished loading wordlist. Time elapsed: ", elapsed)
+	log.Printf("DEBUG: Finished loading wordlist. Time elapsed: %v", elapsed)
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("%v", err)
+		log.Printf("Scanner error while reading wordlist: %v", err)
 	}
 
-	r := setupRouter()
+	r := setupRouter(wordlength)
 	// Listen and Server in 0.0.0.0:8080
 	r.Run(":8080")
 }

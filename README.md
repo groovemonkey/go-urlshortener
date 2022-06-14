@@ -25,14 +25,9 @@ curl http://localhost:8080/url/silverberry-foppy-betocsin-underfrock
 
 
 ## TODO
-- write some tests
+- finish writing some tests
 - create a profile from those tests
-- just make `wordlist` global and don't feed it into the router function as a pointer
-  - create another profile -- does this change anything?
 - in the "/shorten/" handler, extract all the request-data-into-URL munging into its own function
-- Environment Vars!
-  - environment var: pass in the wordlist path
-  - environment var: shortened URL wordlength (right now it's 5)
 - database: optionally make persistent? Use Redis? Maybe like ./myapp --redis=redis.local:6379 cues the application into the fact that we want to use redis for persistent storage, and not our little baby in-memory map DB.
 - environment var: Log level (DEBUG, ERR). Maybe [something fancy like zap](https://github.com/uber-go/zap)?
   - Existing loglines should be categorized into those log levels
