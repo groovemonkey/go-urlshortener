@@ -16,8 +16,9 @@ import (
 
 var dbShortToLong = make(map[string]string)
 var dbLongToShort = make(map[string]string)
+var wordlist []string
 
-func setupRouter(wordlist *[]string) *gin.Engine {
+func setupRouter() *gin.Engine {
 	// Disable Console Color
 	// gin.DisableConsoleColor()
 	r := gin.Default()
@@ -26,7 +27,7 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 	r.POST("/shorten/", func(c *gin.Context) {
 		var chosenWords []string
 		var numWordsNeeded = 4
-		wordlistLength := len(*wordlist)
+		wordlistLength := len(wordlist)
 
 		// Get post -d "DATA" by grabbing the raw request data
 		rawData, err := c.GetRawData()
@@ -56,7 +57,7 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 		for i := 0; i < numWordsNeeded; i++ {
 			randIdx := rand.Intn(wordlistLength)
 			// NOTE: This dereferencing-the-pointer-before-indexing step confused me
-			chosenWords = append(chosenWords, (*wordlist)[randIdx])
+			chosenWords = append(chosenWords, (wordlist)[randIdx])
 		}
 
 		chosenwords_str := strings.Join(chosenWords, "-")
@@ -88,8 +89,6 @@ func setupRouter(wordlist *[]string) *gin.Engine {
 }
 
 func main() {
-	// Create in-memory wordlist
-	var wordlist []string
 
 	// Read wordlist file
 	file, err := os.Open("wordlist.txt")
@@ -115,7 +114,7 @@ func main() {
 		log.Printf("%v", err)
 	}
 
-	r := setupRouter(&wordlist)
+	r := setupRouter()
 	// Listen and Server in 0.0.0.0:8080
 	r.Run(":8080")
 }
