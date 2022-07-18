@@ -24,6 +24,7 @@ const (
 var dbShortToLong = make(map[string]string)
 var dbLongToShort = make(map[string]string)
 var wordlist []string
+var wordlistLength int
 var wordlength = DEFAULT_WORDLENGTH
 
 func setupRouter(wordlength int) *gin.Engine {
@@ -35,7 +36,6 @@ func setupRouter(wordlength int) *gin.Engine {
 	r.POST("/shorten/", func(c *gin.Context) {
 		var chosenWords []string
 		var numWordsNeeded = wordlength
-		wordlistLength := len(wordlist)
 
 		// Get post -d "DATA" by grabbing the raw request data
 		rawData, err := c.GetRawData()
@@ -61,22 +61,26 @@ func setupRouter(wordlength int) *gin.Engine {
 			return
 		}
 
-		// TODO environment variable for url-wordlength
-		for i := 0; i < numWordsNeeded; i++ {
-			randIdx := rand.Intn(wordlistLength)
-			// NOTE: This dereferencing-the-pointer-before-indexing step confused me
-			chosenWords = append(chosenWords, (wordlist)[randIdx])
+		// Build a short-url word string
+		chosenwords := buildRandomWordString(numWordsNeeded)
+
+		// Ensure it's not a duplicate (go-style while loop)
+		for {
+			_, isDuplicate := dbShortToLong[chosenwords]
+			if isDuplicate {
+				log.Printf("Duplicate shorturl detected; chosen words were: %v", chosenwords)
+				// Try a bigger wordspace, just to stack the odds in our favor
+				// If this is a problem for some reason we can always use a 'while' loop
+				chosenwords = buildRandomWordString(numWordsNeeded)
+			}
 		}
 
-		chosenwords_str := strings.Join(chosenWords, "-")
-		log.Printf("Chosen words are", chosenwords_str)
-
 		// Store it in our databases
-		dbShortToLong[chosenwords_str] = originalUrl.String()
-		dbLongToShort[originalUrl.String()] = chosenwords_str
+		dbShortToLong[chosenwords] = originalUrl.String()
+		dbLongToShort[originalUrl.String()] = chosenwords
 
 		// Return a response
-		shortenedUrl := fmt.Sprintf("http://%s/url/%s", c.Request.Host, chosenwords_str)
+		shortenedUrl := fmt.Sprintf("http://%s/url/%s", c.Request.Host, chosenwords)
 		c.String(http.StatusCreated, shortenedUrl)
 	})
 
@@ -139,6 +143,9 @@ func main() {
 	// Not deferred so we can close it before running the web server
 	file.Close()
 
+	// Set wordlist length
+	wordlistLength = len(wordlist)
+
 	elapsed := time.Since(startTime)
 	log.Printf("DEBUG: Finished loading wordlist. Time elapsed: %v", elapsed)
 
@@ -149,4 +156,14 @@ func main() {
 	r := setupRouter(wordlength)
 	// Listen and Server in 0.0.0.0:8080
 	r.Run(":8080")
+}
+
+// Randomly build a string of words, with the correct length
+func buildRandomWordString(wordlist []string, numWordsNeeded int) string {
+	for i := 0; i < numWordsNeeded; i++ {
+		randIdx := rand.Intn(wordlistLength)
+		// NOTE: This dereferencing-the-pointer-before-indexing step confused me
+		chosenWords = append(chosenWords, (wordlist)[randIdx])
+		return strings.Join(chosenWords, "-")
+	}
 }

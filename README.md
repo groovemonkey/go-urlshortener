@@ -25,6 +25,9 @@ curl http://localhost:8080/url/silverberry-foppy-betocsin-underfrock
 
 
 ## TODO
+- duplicate detection for generated short-urls (re-roll mechanic)
+  - shorter default! (2 or 3 words?)
+    - Should be ok -- 235886 words in wordlist, ^2 == 55,642,204,996 URLs before we start having problems
 - finish writing some tests
 - create a profile from those tests
 - in the "/shorten/" handler, extract all the request-data-into-URL munging into its own function
